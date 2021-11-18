@@ -1,9 +1,12 @@
 import nengo
 import numpy as np
+import simplifiedSTDP as stdp
 
 from nengo_fpga.networks import FpgaPesEnsembleNetwork
 
 with nengo.Network() as model:
+
+    stdp_rule = stdp.STDP()
 
     # Input stimulus
     input_node_left = nengo.Node(0)
@@ -16,7 +19,7 @@ with nengo.Network() as model:
 
 
     hidden_layer = nengo.Ensemble(n_neurons=256, dimensions=2)
-    nengo.Connection(input_layer, hidden_layer)
+    nengo.Connection(input_layer, hidden_layer, learning_rule_type = stdp_rule)
 
 
     output_layer1 = nengo.Ensemble(n_neurons=25, dimensions=1)
