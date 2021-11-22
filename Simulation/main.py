@@ -1,12 +1,14 @@
-from agents import manualAgent
+from agents import spikeAgent
 from env import Env 
+import numpy as np 
 
-insect = manualAgent.ManualAgent([200,200], 3)
+insect = spikeAgent.SpikeAgent(np.array([200.0, 200.0]), 15)
 env = Env(insect) 
 
 while True:
     env.render()
-    obs,_,done,_ = env.step(None)
+    action = np.random.randint(2, size=2)
+    obs,_,done,_ = env.step(action)
     if done:
         env.reset()
      

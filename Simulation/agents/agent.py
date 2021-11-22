@@ -1,24 +1,40 @@
 from abc import ABC, abstractmethod #needed to create abstract class 
 from terrain import Terrain 
 from distance import Distance
+import numpy as np
 
 class Agent(ABC):
     """
     Abstract class for the agent.
-    Is used in the force controlled agent and PPO-agent
+    
+    Attributes
+    ----------
+    pos : array
+        x and y coordinate of the agent 
+    radius : int
+        agent is a circle which is represented with a given radius 
+    left_terrain : Terrain 
+        left terrain sensor 
+    right_terrain : Terrain 
+        right terrain sensor 
+    left_target : Distance
+        left distance sensor
+    right_target : Distance
+        right distance sensor
     """
-    def __init__(self, start_pos, radius):
-        self.pos = start_pos 
+    def __init__(self, pos, radius):
+        self.pos = pos 
         self.radius = radius 
-        self.left_motor = 0 
-        self.right_motor = 0 
         self.left_terrain = Terrain.PLAIN
         self.right_terrain = Terrain.PLAIN
         self.left_target = Distance.EQUAL
         self.right_target = Distance.EQUAL 
+        self.left_target_pos = np.array([np.sqrt(2) / 2, np.sqrt(2) / 2]) + self.pos
+        self.right_target_pos = np.array([np.sqrt(2) / 2, -np.sqrt(2) / 2]) + self.pos
 
     @abstractmethod
     def step(self, action):
-        pass 
-
-
+        """
+            Action that the agent takes [1,1]
+        """
+        pass
