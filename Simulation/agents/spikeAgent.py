@@ -19,7 +19,7 @@ class SpikeAgent(agents.agent.Agent):
         #hyper paramters
         self.l = 1
         self.eta = 1 
-        self.tau = 5 
+        self.tau = 1.3 
 
     def step(self, action):
         l_spike, r_spike = action 
