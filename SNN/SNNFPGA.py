@@ -17,9 +17,10 @@ with nengo.Network() as model:
     nengo.Connection(input_node_left, input_layer[0])
     nengo.Connection(input_node_right, input_layer[1])
 
+    solv = nengo.solvers.LstsqL2(weights=True)
 
     hidden_layer = nengo.Ensemble(n_neurons=256, dimensions=2)
-    nengo.Connection(input_layer, hidden_layer, learning_rule_type = stdp_rule)
+    nengo.Connection(input_layer, hidden_layer, solver = solv, learning_rule_type = stdp_rule)
 
 
     output_layer1 = nengo.Ensemble(n_neurons=25, dimensions=1)
