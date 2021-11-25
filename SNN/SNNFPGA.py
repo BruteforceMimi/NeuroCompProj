@@ -1,6 +1,7 @@
 import nengo
 import numpy as np
 import simplifiedSTDP as stdp
+import matplotlib.pyplot as plt
 
 from nengo_fpga.networks import FpgaPesEnsembleNetwork
 
@@ -20,8 +21,7 @@ with nengo.Network() as model:
     solv = nengo.solvers.LstsqL2(weights=True)
 
     hidden_layer = nengo.Ensemble(n_neurons=256, dimensions=2)
-    nengo.Connection(input_layer, hidden_layer, solver = solv, learning_rule_type = stdp_rule)
-
+    conn = nengo.Connection(input_layer, hidden_layer, solver = solv, learning_rule_type = stdp_rule)
 
     output_layer1 = nengo.Ensemble(n_neurons=25, dimensions=1)
     output_layer2 = nengo.Ensemble(n_neurons=25, dimensions=1)
@@ -29,7 +29,13 @@ with nengo.Network() as model:
     nengo.Connection(hidden_layer[0], output_layer1)
     nengo.Connection(hidden_layer[1], output_layer2)
 
-with nengo.Simulator(model) as sim:
-    sim.run(10)
+    hidden_probe = nengo.Probe(conn.learning_rule, synapse=0.01)
+    print(conn.learning_rule.probeable)
 
+with nengo.Simulator(model) as sim:
+    sim.run(5)
+
+print(sim.data[hidden_probe][2])
+plt.plot(sim.data[hidden_probe][2], color="b", label="delta")
+plt.show()
 print("Yey done")
