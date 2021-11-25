@@ -9,8 +9,8 @@ with nengo.Network() as model:
     stdp_rule = stdp.STDP()
 
     # Input stimulus
-    input_node_left = nengo.Node(0)
-    input_node_right = nengo.Node(0)
+    input_node_left = nengo.Node(1)
+    input_node_right = nengo.Node(2)
 
     input_layer = nengo.Ensemble(n_neurons=100, dimensions=2)
 
@@ -29,3 +29,7 @@ with nengo.Network() as model:
     nengo.Connection(hidden_layer[0], output_layer1)
     nengo.Connection(hidden_layer[1], output_layer2)
 
+with nengo.Simulator(model) as sim:
+    sim.run(10)
+
+print("Yey done")
