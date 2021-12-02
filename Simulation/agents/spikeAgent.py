@@ -37,3 +37,6 @@ class SpikeAgent(agents.agent.Agent):
 
         self.right_target_pos = np.array([np.cos(self.theta - np.pi / 4), np.sin(self.theta - np.pi / 4)]) * 12
         self.right_target_pos += self.pos  
+
+        self.left_terrain_pos = np.array([np.cos(self.theta + np.pi / 2), np.sin(self.theta + np.pi / 2)])  * (self.radius)+ self.pos 
+        self.right_terrain_pos = np.array([np.cos(self.theta - np.pi / 2), np.sin(self.theta - np.pi / 2)]) * (self.radius) + self.pos 

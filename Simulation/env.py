@@ -2,6 +2,8 @@ import numpy as np
 import pygame 
 from terrain import Terrain 
 from distance import Distance
+from PIL import Image, ImageOps
+import math
 
 class Env():
     """
@@ -12,13 +14,12 @@ class Env():
         self.display = pygame.display.set_mode(self.size)
         self.agent = agent
 
-        self.map = np.ones((self.size)) * 255
-        self.map[350:450, 100:300] = 80
+        self.map = self._load_map('env2.png')
 
         self.clock = pygame.time.Clock()
         self.speed = 15
 
-        self.goal = np.array([400,400])
+        self.goal = np.array([500,80])
 
     def step(self, action):
         """
@@ -28,7 +29,7 @@ class Env():
         reward = 0
         done = False 
         info = {}
-
+        print(self._check_terrain(self.agent.left_terrain_pos, self.agent.right_terrain_pos))
         self.agent.step(action)
         d_l, d_r = self._distance()
         if d_l == d_r:
@@ -70,6 +71,9 @@ class Env():
             pygame.draw.circle(self.display, pygame.Color(255, 0, 0), self.agent.left_target_pos, 3)
             pygame.draw.circle(self.display, pygame.Color(255, 0, 0), self.agent.right_target_pos, 5)
             
+        pygame.draw.circle(self.display, pygame.Color(150, 75, 0), self.agent.left_terrain_pos, 3)
+        pygame.draw.circle(self.display, pygame.Color(150, 75, 0), self.agent.right_terrain_pos, 3)
+
 
     def _draw_goal(self):
         pygame.draw.circle(self.display, pygame.Color(0,255,0), self.goal, 9)    
@@ -82,3 +86,13 @@ class Env():
 
     def get_display(self):
         return self.display
+
+    def _load_map(self, name):
+        map = Image.open(f'Simulation/environments/{name}')
+        map = ImageOps.grayscale(map)
+        map = np.asarray(map)
+        return map 
+
+
+    def _check_terrain(self, sensorL_pos, sensorR_pos):
+        return [self.map[math.ceil(sensorL_pos[0]), math.ceil(sensorL_pos[1])], self.map[math.ceil(sensorR_pos[0]), math.ceil(sensorR_pos[1])]] 
