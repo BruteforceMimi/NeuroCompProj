@@ -20,6 +20,7 @@ class Env():
         self.speed = 15
 
         self.goal = np.array([500,80])
+        self.C = np.array([[0.8],[0.6]])
 
     def step(self, action):
         """
@@ -29,19 +30,11 @@ class Env():
         reward = 0
         done = False 
         info = {}
-        print(self._check_terrain(self.agent.left_terrain_pos, self.agent.right_terrain_pos))
         self.agent.step(action)
-        d_l, d_r = self._distance()
-        if d_l == d_r:
-            self.agent.left_target = Distance.EQUAL
-            self.agent.right_target = Distance.EQUAL 
-        elif d_l < d_r: 
-            self.agent.left_target = Distance.WEAK 
-            self.agent.right_target = Distance.STRONG
-        else: 
-            self.agent.left_target = Distance.STRONG 
-            self.agent.right_target = Distance.WEAK 
-
+        self.agent.left_target, self.agent.right_target = self._distance()
+        self.agent.left_terrain, self.agent.right_terrain = self._terrain()
+        target = self._generate_target()
+        #print(target)
         return obs, reward, done, info
 
     def render(self):
@@ -84,6 +77,11 @@ class Env():
         r_x, r_y = self.agent.right_target_pos 
         return np.sqrt((g_x-l_x)**2 + (g_y-l_y)**2), np.sqrt((g_x-r_x)**2 + (g_y-r_y)**2)
 
+    def _terrain(self):
+        l_t = self.map[math.ceil(self.agent.left_terrain_pos[0]), math.ceil(self.agent.left_terrain_pos[1])]
+        r_t = self.map[math.ceil(self.agent.right_terrain_pos[0]), math.ceil(self.agent.right_terrain_pos[1])]
+        return l_t, r_t 
+
     def get_display(self):
         return self.display
 
@@ -96,3 +94,11 @@ class Env():
 
     def _check_terrain(self, sensorL_pos, sensorR_pos):
         return [self.map[math.ceil(sensorL_pos[0]), math.ceil(sensorL_pos[1])], self.map[math.ceil(sensorR_pos[0]), math.ceil(sensorR_pos[1])]] 
+
+    def _generate_target(self):
+        sensors = np.array([[self.agent.left_terrain, self.agent.left_target],
+                            [self.agent.right_terrain, self.agent.right_target]]) 
+
+        print('left ',self.agent.left_target) 
+        print('right ', self.agent.right_target)
+        return sensors @ self.C 
