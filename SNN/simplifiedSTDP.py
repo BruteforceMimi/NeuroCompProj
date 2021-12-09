@@ -168,10 +168,10 @@ class SimSTDP(Operator):
                 - self.beta_p * ((weights - self.min_weight) / (self.max_weight - self.min_weight)))) * pre_trace[
                                                                                                         np.newaxis,
                                                                                                         :] - (
-                                      alphaN * np.exp(- self.beta_n * ((self.max_weight - weights) / (
-                                          self.max_weight - self.min_weight)))) * post_trace[:,
-                                                                                  np.newaxis]) * post_activities[:,
-                                                                                                 np.newaxis] * dt
+                                  alphaN * np.exp(- self.beta_n * ((self.max_weight - weights) / (
+                                  self.max_weight - self.min_weight)))) * post_trace[:,
+                                                                          np.newaxis]) * post_activities[:,
+                                                                                         np.newaxis] * dt
 
             np.putmask(delta, ((weights + delta) < self.min_weight), self.min_weight - weights)
             np.putmask(delta, ((weights + delta) > self.max_weight), self.max_weight - weights)

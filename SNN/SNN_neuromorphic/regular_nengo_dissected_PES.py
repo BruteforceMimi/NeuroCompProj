@@ -52,6 +52,7 @@ class PES_2(LearningRuleType):
             )
 
         self.pre_synapse = pre_synapse
+
 class SimPES_2(Operator):
     r"""Calculate connection weight change according to the PES rule.
 
@@ -253,4 +254,6 @@ with nengo.Network(label="PES learning") as model:
     error_p = nengo.Probe(error, synapse=0.01)
 
 with nengo.Simulator(model) as sim:
-   sim.run(1)
+   sim.run(10)
+
+print("help")

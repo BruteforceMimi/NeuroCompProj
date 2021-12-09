@@ -39,6 +39,7 @@ def connect_layers(layer_plane1, layer_plane2):
     return 0
 
 
+
 with nengo.Network() as model:
 
     stdp_rule = stdp.STDP()
