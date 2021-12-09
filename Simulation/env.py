@@ -15,9 +15,10 @@ class Env():
         self.agent = agent
 
         self.map = self._load_map('env2.png')
+        print(self.map)
 
         self.clock = pygame.time.Clock()
-        self.speed = 1
+        self.speed = 15
 
         self.goal = np.array([500,80])
         self.C = np.array([[0.1],[0.01]])
@@ -96,7 +97,7 @@ class Env():
         return [self.map[math.ceil(sensorL_pos[0]), math.ceil(sensorL_pos[1])], self.map[math.ceil(sensorR_pos[0]), math.ceil(sensorR_pos[1])]] 
 
     def _generate_target(self):
-        sensors = np.array([[self.agent.left_terrain, self.agent.left_target],
-                            [self.agent.right_terrain, self.agent.right_target]]) 
+        sensors = np.array([[255 - self.agent.left_terrain, self.agent.left_target],
+                            [255 - self.agent.right_terrain, self.agent.right_target]]) 
 
         return sensors @ self.C 
