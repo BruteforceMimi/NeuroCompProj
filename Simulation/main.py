@@ -3,7 +3,7 @@ from env import Env
 import numpy as np 
 import pygame 
 
-insect = spikeAgent.SpikeAgent(np.array([200.0, 200.0]), 15)
+insect = spikeAgent.SpikeAgent(np.array([80.0, 550.0]), 15)
 env = Env(insect) 
 done = False 
 

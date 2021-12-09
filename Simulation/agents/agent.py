@@ -30,7 +30,10 @@ class Agent(ABC):
         self.left_target = Distance.EQUAL
         self.right_target = Distance.EQUAL 
         self.left_target_pos = np.array([np.sqrt(2) / 2, np.sqrt(2) / 2]) + self.pos
-        self.right_target_pos = np.array([np.sqrt(2) / 2, -np.sqrt(2) / 2]) + self.pos
+        self.right_target_pos = np.array([np.sqrt(2) / 2, -np.sqrt(2) / 2]) + self.pos 
+
+        self.left_terrain_pos = np.array([0,1]) + self.pos 
+        self.right_terrain_pos = np.array([0, -1]) + self.pos 
 
     @abstractmethod
     def step(self, action):
