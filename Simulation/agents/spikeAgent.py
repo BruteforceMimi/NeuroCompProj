@@ -17,7 +17,7 @@ class SpikeAgent(agents.agent.Agent):
         self.vr = 0 #speed of right motor 
 
         #hyper paramters
-        self.l = 1
+        self.l = 5
         self.eta = 1 
         self.tau = 1.3 
 
@@ -32,10 +32,10 @@ class SpikeAgent(agents.agent.Agent):
         update_pos = np.array([self.vx, self.vy])
         self.pos += update_pos 
 
-        self.left_target_pos = np.array([np.cos(self.theta + np.pi / 4), np.sin(self.theta + np.pi / 4)]) * 12
+        self.left_target_pos = np.array([np.cos(self.theta - np.pi / 4), np.sin(self.theta - np.pi / 4)]) * 12
         self.left_target_pos += self.pos  
 
-        self.right_target_pos = np.array([np.cos(self.theta - np.pi / 4), np.sin(self.theta - np.pi / 4)]) * 12
+        self.right_target_pos = np.array([np.cos(self.theta + np.pi / 4), np.sin(self.theta + np.pi / 4)]) * 12
         self.right_target_pos += self.pos  
 
         self.left_terrain_pos = np.array([np.cos(self.theta + np.pi / 2), np.sin(self.theta + np.pi / 2)])  * (self.radius)+ self.pos 
