@@ -22,7 +22,6 @@ def plot_decoded(t, data, xlim_tuple=None):
     plt.plot(t, data[outb_p].T[0], label="Output  Right")
     plt.ylabel("Decoded output")
     plt.legend(loc="best")
-
     plt.show()
 
 def error_func(desired_L, desired_R, actual_L, actual_R):
