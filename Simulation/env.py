@@ -5,6 +5,14 @@ from distance import Distance
 from PIL import Image, ImageOps
 import math
 
+
+"""
+TO DO:
+-writing data to file(memory issues)
+-terrain does not have influence on speed of agent 
+-agent should speed up
+"""
+
 class Env():
     """
     """
@@ -15,17 +23,20 @@ class Env():
         self.agent = agent
 
         self.map = self._load_map('env2.png')
-        print(self.map)
 
         self.clock = pygame.time.Clock()
         self.speed = 15
-
         self.goal = np.array([500,80])
         self.C = np.array([[0.1],[0.01]])
 
     def step(self, action):
         """
-
+        Used to take one step in the enviornment. 
+        returns:
+            obs: Array, new observation of the environment
+            reward: Int, reward(penalty in our implemenation) the agent gets
+            done: Boolean, true if agents reaches goal, false otherwise
+            info: dict, some additional information that can be used for debugging 
         """
         obs = []
         reward = 0
@@ -35,10 +46,14 @@ class Env():
         self.agent.left_target, self.agent.right_target = self._distance()
         self.agent.left_terrain, self.agent.right_terrain = self._terrain()
         target = self._generate_target()
-        print(target)
+        self._generate_data()
+
+        if self.agent.left_target < 20 or self.agent.right_target < 20:
+            done = True 
         return obs, reward, done, info
 
     def render(self):
+        """Draws all object to the screen. If not called nothing is rendered"""
         self._draw_terrain()
         self._draw_agent()
         self._draw_goal()
@@ -46,16 +61,16 @@ class Env():
         pygame.display.update()
 
     def reset(self):
-        pass 
-
-    def _generate_terrain(self):
-        pass 
+        """Resets the environment. Puts agent back at begin position"""
+        self.agent.pos = np.array([80.0, 550.0])
 
     def _draw_terrain(self):
+        """Draws the terrain to the screen"""
         surf = pygame.surfarray.make_surface(self.map)
         self.display.blit(surf, (0, 0))
 
     def _draw_agent(self):
+        """Draws the agent. The distance sensor that is closer to the goal is bigger"""
         pygame.draw.circle(self.display, pygame.Color(0, 0, 0), self.agent.pos, self.agent.radius)
         closest = np.argmin(self._distance())
         if closest == 0: #left sensor
@@ -70,15 +85,18 @@ class Env():
 
 
     def _draw_goal(self):
+        """Draws the goal to the screen"""
         pygame.draw.circle(self.display, pygame.Color(0,255,0), self.goal, 9)    
 
     def _distance(self):
+        """Calculates the distance from the distance sensors to the goal"""
         g_x, g_y = self.goal 
         l_x, l_y = self.agent.left_target_pos 
         r_x, r_y = self.agent.right_target_pos 
         return np.sqrt((g_x-l_x)**2 + (g_y-l_y)**2), np.sqrt((g_x-r_x)**2 + (g_y-r_y)**2)
 
     def _terrain(self):
+        """Calculates the terrain values for the terrain sensors"""
         l_t = self.map[math.ceil(self.agent.left_terrain_pos[0]), math.ceil(self.agent.left_terrain_pos[1])]
         r_t = self.map[math.ceil(self.agent.right_terrain_pos[0]), math.ceil(self.agent.right_terrain_pos[1])]
         return l_t, r_t 
@@ -87,17 +105,77 @@ class Env():
         return self.display
 
     def _load_map(self, name):
+        """
+        Loads the map that is displayed. All map should be in the Simulation/environments/ folder
+        name : String, filename 
+        """
         map = Image.open(f'Simulation/environments/{name}')
         map = ImageOps.grayscale(map)
         map = np.asarray(map)
         return map 
 
 
-    def _check_terrain(self, sensorL_pos, sensorR_pos):
-        return [self.map[math.ceil(sensorL_pos[0]), math.ceil(sensorL_pos[1])], self.map[math.ceil(sensorR_pos[0]), math.ceil(sensorR_pos[1])]] 
+    # def _check_terrain(self, sensorL_pos, sensorR_pos):
+    #     """"""
+    #     return [self.map[math.ceil(sensorL_pos[0]), math.ceil(sensorL_pos[1])], self.map[math.ceil(sensorR_pos[0]), math.ceil(sensorR_pos[1])]] 
 
     def _generate_target(self):
+        """ Generators target frequencies that the agent should use """
+                            #255 - is used to map black terrain to rough terrain 
         sensors = np.array([[255 - self.agent.left_terrain, self.agent.left_target],
                             [255 - self.agent.right_terrain, self.agent.right_target]]) 
 
         return sensors @ self.C 
+
+    def _equal(self, sensor1, sensor2):
+        """checks if the sensors are close to equal"""
+        return abs(sensor1-sensor2) < 5
+
+
+    def _generate_data(self):
+        """
+        Generates data used for training according to the 12 cases.
+        """
+        data = {str(k): [] for k in range(1,13)}
+        l_ter = self.agent.left_terrain
+        r_ter = self.agent.right_terrain
+        l_tar = self.agent.left_target
+        r_tar = self.agent.right_target
+        if l_ter == 255 and r_ter == 255 and l_tar > r_tar:
+            print('1')
+            data['1'].append([l_ter, r_ter, l_tar, r_tar])
+        elif l_ter == 255 and r_ter < 255 and l_tar > r_tar:
+            print('2')
+            data['2'].append([l_ter, r_ter, l_tar, r_tar])
+        elif l_ter < 255 and r_ter == 255 and l_tar > r_tar:
+            print('3')
+            data['3'].append([l_ter, r_ter, l_tar, r_tar])
+        elif l_ter < 255 and r_ter < 255 and l_tar > r_tar:
+            print('4')
+            data['4'].append([l_ter, r_ter, l_tar, r_tar])
+        elif l_ter == 255 and r_ter == 255 and self._equal(l_tar, r_tar):
+            print('5')
+            data['5'].append([l_ter, r_ter, l_tar, r_tar])
+        elif l_ter == 255 and r_ter < 255 and self._equal(l_tar, r_tar):
+            print('6')
+            data['6'].append([l_ter, r_ter, l_tar, r_tar])
+        elif l_ter < 255 and r_ter == 255 and self._equal(l_tar, r_tar):
+            print('7')
+            data['7'].append([l_ter, r_ter, l_tar, r_tar])
+        elif l_ter < 255 and r_ter < 255 and self._equal(l_tar, r_tar):
+            print('8')
+            data['8'].append([l_ter, r_ter, l_tar, r_tar])
+        elif l_ter == 255 and r_ter == 255 and l_tar < r_tar:
+            print('9')
+            data['9'].append([l_ter, r_ter, l_tar, r_tar])
+        elif l_ter == 255 and r_ter < 255 and l_tar < r_tar:
+            print('10')
+            data['10'].append([l_ter, r_ter, l_tar, r_tar])
+        elif l_ter < 255 and r_ter == 255 and l_tar < r_tar:
+            print('11')
+            data['11'].append([l_ter, r_ter, l_tar, r_tar])
+        elif l_ter < 255 and r_ter < 255 and l_tar < r_tar:
+            print('12')
+            data['12'].append([l_ter, r_ter, l_tar, r_tar])
+        else:
+            print("something went wrong, this should not be executed!")
