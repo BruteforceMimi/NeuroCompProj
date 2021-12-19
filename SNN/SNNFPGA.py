@@ -35,6 +35,8 @@ def create_network_layer(n, m, learning_rule, solver):
 
     return grid
 
+def connect_layers(layer_plane1, layer_plane2):
+    return 0
 
 
 
@@ -43,10 +45,18 @@ with nengo.Network() as model:
     stdp_rule = stdp.STDP()
     solv = nengo.solvers.LstsqL2(weights=True)
 
-    test_input_layer = create_network_layer(5, 5, stdp_rule, solv)
-    print(test_input_layer)
+    test_input_layer1 = create_network_layer(5, 5, stdp_rule, solv)
+    test_input_layer2 = create_network_layer(5, 5, stdp_rule, solv)
 
 
+
+    test_hidden_layer = create_network_layer(16, 16, stdp_rule, solv)
+
+    connect_layers(test_input_layer1, test_hidden_layer)
+    connect_layers(test_input_layer2, test_hidden_layer)
+
+    test_output_layer1 = create_network_layer(5, 5, stdp_rule, solv)
+    test_output_layer2 = create_network_layer(5, 5, stdp_rule, solv)
 
     # Input stimulus
     input_node_left = nengo.Node(1)
