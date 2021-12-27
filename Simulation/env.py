@@ -22,12 +22,16 @@ class Env():
         self.display = pygame.display.set_mode(self.size)
         self.agent = agent
 
-        self.map = self._load_map('env2.png')
+        self.map = self._load_map('env3.png')
 
         self.clock = pygame.time.Clock()
         self.speed = 15
         self.goal = np.array([500,80])
         self.C = np.array([[0.1],[0.01]])
+
+        self.data =  {str(k): [] for k in range(1,13)}
+
+        self.i = 0 
 
     def step(self, action):
         """
@@ -45,8 +49,19 @@ class Env():
         self.agent.step(action)
         self.agent.left_target, self.agent.right_target = self._distance()
         self.agent.left_terrain, self.agent.right_terrain = self._terrain()
-        target = self._generate_target()
-        self._generate_data()
+
+        #ugly way to only sample every 5 steps(avoids samples being to similair)
+
+        if self.i % 5 == 0:
+            self._generate_data()
+        self.i+=1
+
+        total = sum([len(self.data[str(k)]) for k in range(1,13)])
+        if total == 12 * 25:
+            self._save_csv()
+            done = True 
+
+        print([len(self.data[str(k)]) for k in range(1,13)])
 
         if self.agent.left_target < 20 or self.agent.right_target < 20:
             done = True 
@@ -136,46 +151,59 @@ class Env():
         """
         Generates data used for training according to the 12 cases.
         """
-        data = {str(k): [] for k in range(1,13)}
         l_ter = self.agent.left_terrain
         r_ter = self.agent.right_terrain
         l_tar = self.agent.left_target
         r_tar = self.agent.right_target
+
+        l_target, r_target = self._generate_target().flatten()
+        
+        max_points = 25
+
         if l_ter == 255 and r_ter == 255 and l_tar > r_tar:
-            print('1')
-            data['1'].append([l_ter, r_ter, l_tar, r_tar])
+            if len(self.data['1']) < max_points:
+                self.data['1'].append([l_ter, r_ter, l_tar, r_tar, l_target, r_target])
         elif l_ter == 255 and r_ter < 255 and l_tar > r_tar:
-            print('2')
-            data['2'].append([l_ter, r_ter, l_tar, r_tar])
+            if len(self.data['2']) < max_points:
+                self.data['2'].append([l_ter, r_ter, l_tar, r_tar, l_target, r_target])
         elif l_ter < 255 and r_ter == 255 and l_tar > r_tar:
-            print('3')
-            data['3'].append([l_ter, r_ter, l_tar, r_tar])
+            if len(self.data['3']) < max_points:
+                self.data['3'].append([l_ter, r_ter, l_tar, r_tar, l_target, r_target])
         elif l_ter < 255 and r_ter < 255 and l_tar > r_tar:
-            print('4')
-            data['4'].append([l_ter, r_ter, l_tar, r_tar])
+            if len(self.data['4']) < max_points:
+                self.data['4'].append([l_ter, r_ter, l_tar, r_tar, l_target, r_target])
         elif l_ter == 255 and r_ter == 255 and self._equal(l_tar, r_tar):
-            print('5')
-            data['5'].append([l_ter, r_ter, l_tar, r_tar])
+            if len(self.data['5']) < max_points:
+                self.data['5'].append([l_ter, r_ter, l_tar, r_tar, l_target, r_target])
         elif l_ter == 255 and r_ter < 255 and self._equal(l_tar, r_tar):
-            print('6')
-            data['6'].append([l_ter, r_ter, l_tar, r_tar])
+            if len(self.data['6']) < max_points:
+                self.data['6'].append([l_ter, r_ter, l_tar, r_tar, l_target, r_target])
         elif l_ter < 255 and r_ter == 255 and self._equal(l_tar, r_tar):
-            print('7')
-            data['7'].append([l_ter, r_ter, l_tar, r_tar])
+            if len(self.data['7']) < max_points:
+                self.data['7'].append([l_ter, r_ter, l_tar, r_tar, l_target, r_target])
         elif l_ter < 255 and r_ter < 255 and self._equal(l_tar, r_tar):
-            print('8')
-            data['8'].append([l_ter, r_ter, l_tar, r_tar])
+            if len(self.data['8']) < max_points:
+                self.data['8'].append([l_ter, r_ter, l_tar, r_tar, l_target, r_target])
         elif l_ter == 255 and r_ter == 255 and l_tar < r_tar:
-            print('9')
-            data['9'].append([l_ter, r_ter, l_tar, r_tar])
+            if len(self.data['9']) < max_points:
+                self.data['9'].append([l_ter, r_ter, l_tar, r_tar, l_target, r_target])
         elif l_ter == 255 and r_ter < 255 and l_tar < r_tar:
-            print('10')
-            data['10'].append([l_ter, r_ter, l_tar, r_tar])
+            if len(self.data['10']) < max_points:
+                self.data['10'].append([l_ter, r_ter, l_tar, r_tar, l_target, r_target])
         elif l_ter < 255 and r_ter == 255 and l_tar < r_tar:
-            print('11')
-            data['11'].append([l_ter, r_ter, l_tar, r_tar])
+            if len(self.data['11']) < max_points:
+                self.data['11'].append([l_ter, r_ter, l_tar, r_tar, l_target, r_target])
         elif l_ter < 255 and r_ter < 255 and l_tar < r_tar:
-            print('12')
-            data['12'].append([l_ter, r_ter, l_tar, r_tar])
+            if len(self.data['12']) < max_points:
+                self.data['12'].append([l_ter, r_ter, l_tar, r_tar, l_target, r_target])
         else:
             print("something went wrong, this should not be executed!")
+
+
+    def _save_csv(self):
+        with open('data.csv', 'a') as f:
+            for key, values in self.data.items(): 
+                for value in values:    
+                    for elm in value:   
+                        f.write(str(elm) + " ")
+                    f.write("\n")

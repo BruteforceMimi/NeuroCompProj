@@ -26,5 +26,5 @@ while True:
     obs, reward, done, info = env.step(action)
 
     if done:
-        env.reset()
+        break
      
