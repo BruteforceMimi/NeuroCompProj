@@ -1,5 +1,6 @@
 import nengo
 import numpy as np
+import nengo_dl
 from nengo.processes import WhiteSignal
 import matplotlib.pyplot as plt
 
@@ -30,11 +31,10 @@ def error_func(desired_L, desired_R, actual_L, actual_R):
     return np.mean(left + right)
 
 with nengo.Network(label="STDP") as model:
-    noise_period = 60
-    cutoff_freq = 5
-    my_spikes_L = [[0,1,0,0,0,0,1,1],[0,1,0,0,0,0,1,1]]
+
+    my_spikes_L = [[0],[0]]
     input_node_L = nengo.Node(nengo.processes.PresentInput(my_spikes_L, 0.001))
-    my_spikes_R = [[0, 1, 0, 0, 1, 0, 1, 1], [1, 1, 0, 0, 1, 0, 1, 1]]
+    my_spikes_R = [[0], [1]]
     input_node_R = nengo.Node(nengo.processes.PresentInput(my_spikes_R, 0.001))
     # https://forum.nengo.ai/t/spike-train-input-to-a-snn-model/717/4
 
@@ -43,34 +43,37 @@ with nengo.Network(label="STDP") as model:
     # stim_right_t = nengo.Node(output = 1, size_out=1)
     # stim_right_o = nengo.Node(output = 1, size_out=1)
 
-    inp_collector_l = nengo.Ensemble(8, dimensions = 8)
-    inp_collector_r = nengo.Ensemble(8, dimensions = 8)
+    inp_collector_l = nengo.Ensemble(8, dimensions = 1)
+    inp_collector_r = nengo.Ensemble(8, dimensions = 1)
 
+    dij_node = nengo.Node([1])
+
+    Dij = dij_node.output[0]
+    print(Dij)
 
     #input
-    input_a = nengo.Ensemble(8,dimensions = 8)
-    input_b = nengo.Ensemble(8,dimensions = 8)
+    input_a = nengo.Ensemble(1, dimensions = 1)
+    input_b = nengo.Ensemble(1, dimensions = 1)
 
     #hidden
-    hidden_a = nengo.Ensemble(8, dimensions = 8)
-    hidden_b = nengo.Ensemble(8, dimensions = 8)
-    hidden_c = nengo.Ensemble(8, dimensions = 8)
+    hidden_a = nengo.Ensemble(1, dimensions = 1)
+    hidden_b = nengo.Ensemble(1, dimensions = 1)
+    hidden_c = nengo.Ensemble(1, dimensions = 1)
 
     #output
-    output_a = nengo.Ensemble(8, dimensions = 8)
-    output_b = nengo.Ensemble(8, dimensions = 8)
+    output_a = nengo.Ensemble(1, dimensions = 1)
+    output_b = nengo.Ensemble(1, dimensions = 1)
 
     outa_p = nengo.Probe(output_a)
     outb_p = nengo.Probe(output_b)
-
+    output_dij = nengo.Probe(dij_node)
     ## connections  between the layers
-    Dij = 0.01
 
 
 
-    nengo.Connection(input_node_L, inp_collector_l, synapse =0.05 - Dij)
+    nengo.Connection(input_node_L, inp_collector_l, synapse =0.05 )
 
-    nengo.Connection(input_node_R, inp_collector_r, synapse = 0.05 + Dij)
+    nengo.Connection(input_node_R, inp_collector_r, synapse = 0.05 )
 
 
     nengo.Connection(inp_collector_l, input_a, solver=nengo.solvers.LstsqL2(weights=True),
@@ -122,13 +125,29 @@ with nengo.Network(label="STDP") as model:
     nengo.Connection(output_b, output_a)
 
 
+sim = nengo_dl.Simulator(model)
+sim.run_steps(500)
+freq_a = np.sum(sim.data[outa_p]>0, axis =0)/len(sim.data[outa_p])
+freq_b = np.sum(sim.data[outb_p] > 0, axis=0)/len(sim.data[outb_p])
+print("freq A",freq_a)
+print("freq B",freq_b)
+
+print("new sim")
+sim.run(1.0)
+freq_a = np.sum(sim.data[outa_p]>0, axis =0)/len(sim.data[outa_p])
+freq_b = np.sum(sim.data[outb_p] > 0, axis=0)/len(sim.data[outb_p])
+print("freq A",freq_a)
+print("freq B",freq_b)
 
 with nengo.Simulator(model) as sim:
     sim.run(1.0)
+    freq_a = np.sum(sim.data[outa_p]>0, axis =0)
+    freq_b = np.sum(sim.data[outb_p] > 0, axis=0)
 t = sim.trange()
+print("freq A",freq_a)
+print("freq B",freq_b)
 
 
-print(sim.data[outa_p][0])
-print(sim.data[outa_p][1])
+
 
 plot_decoded(t, sim.data)
