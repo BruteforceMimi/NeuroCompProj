@@ -161,6 +161,14 @@ with nengo.Network(label="STDP") as model:
     nengo.Connection(output_a, output_b)
     nengo.Connection(output_b, output_a)
 
+    ## WIP: calculate error through ensembles
+    # target_L = nengo.Node(nengo.processes.PresentInput(target_freq_L, timing))
+    # target_R = nengo.Node(nengo.processes.PresentInput(target_freq_R, timing))
+    # nengo.Connection(output_a, target_L, synapse=None, function = error_func)
+    # nengo.Connection(output_b, target_R, synapse=None, transform= error_func)
+
+
+
 with nengo.Simulator(model) as sim:
     sim.run(0.1)
     freq_a = np.sum(sim.data[outa_p] > 0, axis=0) / len(sim.data[outa_p])
