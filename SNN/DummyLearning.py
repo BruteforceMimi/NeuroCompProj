@@ -44,24 +44,27 @@ def read_data():
     with open('../data.csv', newline='') as csvfile:
         datafile = csv.reader(csvfile, delimiter=' ', quotechar='|')
         for row in datafile:
-            left_terrain.append(row[0])
-            right_terrain.append(row[1])
-            left_distance.append(row[2])
-            right_distance.append(row[3])
-            target_L.append(row[4])
-            target_R.append(row[5])
+            left_terrain.append(float(row[0]))
+            right_terrain.append(float(row[1]))
+            left_distance.append(float(row[2]))
+            right_distance.append(float(row[3]))
+            target_L.append(float(row[4]))
+            target_R.append(float(row[5]))
 
 
     return [left_terrain, left_distance], [right_terrain, right_distance], target_L, target_R
 
 with nengo.Network(label="STDP") as model:
-    timing = 0.001
+    timing = 0.1
 
     my_spikes_L, my_spikes_R, target_freq_L, target_freq_R = read_data()
-    #my_spikes_L = [[0],[0]]
-    input_node_L = nengo.Node(nengo.processes.PresentInput(my_spikes_L, timing))
+    print(my_spikes_L)
+    my_spikes_L = [[0,0],[0,0]]
+    process_L = nengo.processes.PresentInput(my_spikes_L, timing)
+    input_node_L = nengo.Node(process_L)
     #my_spikes_R = [[0], [1]]
-    input_node_R = nengo.Node(nengo.processes.PresentInput(my_spikes_R, timing))
+    process_R = nengo.processes.PresentInput(my_spikes_R, timing)
+    input_node_R = nengo.Node(process_R)
     # https://forum.nengo.ai/t/spike-train-input-to-a-snn-model/717/4
 
     # stim_left_t = nengo.Node(output=1 , size_out=1)
