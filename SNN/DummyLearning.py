@@ -11,6 +11,9 @@ def neg_sum_func(x):
 def sum_func(x):
     return (x[0]+x[1])
 
+def error_func(x, y):
+    return (x - y)
+
 def plot_decoded(t, data, xlim_tuple=None):
     if xlim_tuple:
         x_start, x_end = xlim_tuple
@@ -41,23 +44,24 @@ def read_data():
     with open('../data.csv', newline='') as csvfile:
         datafile = csv.reader(csvfile, delimiter=' ', quotechar='|')
         for row in datafile:
-            left_terrain = row[0]
-            right_terrain = row[1]
-            left_distance = row[2]
-            right_distance = row[3]
-            target_L = row[4]
-            target_R = row[5]
+            left_terrain.append(row[0])
+            right_terrain.append(row[1])
+            left_distance.append(row[2])
+            right_distance.append(row[3])
+            target_L.append(row[4])
+            target_R.append(row[5])
 
 
     return [left_terrain, left_distance], [right_terrain, right_distance], target_L, target_R
 
 with nengo.Network(label="STDP") as model:
+    timing = 0.001
 
     my_spikes_L, my_spikes_R, target_freq_L, target_freq_R = read_data()
     #my_spikes_L = [[0],[0]]
-    input_node_L = nengo.Node(nengo.processes.PresentInput(my_spikes_L, 0.001))
+    input_node_L = nengo.Node(nengo.processes.PresentInput(my_spikes_L, timing))
     #my_spikes_R = [[0], [1]]
-    input_node_R = nengo.Node(nengo.processes.PresentInput(my_spikes_R, 0.001))
+    input_node_R = nengo.Node(nengo.processes.PresentInput(my_spikes_R, timing))
     # https://forum.nengo.ai/t/spike-train-input-to-a-snn-model/717/4
 
     # stim_left_t = nengo.Node(output=1 , size_out=1)
@@ -145,6 +149,12 @@ with nengo.Network(label="STDP") as model:
 
     nengo.Connection(output_a, output_b)
     nengo.Connection(output_b, output_a)
+
+    target_L = nengo.Node(nengo.processes.PresentInput(target_freq_L, timing))
+    target_R = nengo.Node(nengo.processes.PresentInput(target_freq_R, timing))
+    nengo.Connection(output_a, target_L, synapse=None, function = error_func)
+    nengo.Connection(output_b, target_R, synapse=None, transform= error_func)
+
 
 
 sim = nengo.Simulator(model)
