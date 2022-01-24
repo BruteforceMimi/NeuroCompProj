@@ -177,8 +177,20 @@ with nengo.Network(label="STDP") as model:
     nengo.Connection(output_b, error_R, synapse=None, transform = -1)
     nengo.Connection(target_R, error_R, synapse=None, transform = -1)
 
+    # -- inhibit errors after 40 seconds - gestolen van de tutorial
+    inhib = nengo.Node(lambda t: 2.0 if t > 40.0 else 0.0)
+    nengo.Connection(inhib, error_L.neurons, transform=[[-1]] * error_L.n_neurons)
+    nengo.Connection(inhib, error_R.neurons, transform=[[-1]] * error_R.n_neurons)
+
+    # -- probes
+    target_p_L = nengo.Probe(target_L, synapse=0.01)
+    pre_p_L = nengo.Probe(input_node_L, synapse=0.01)
+    post_L_p = nengo.Probe(output_a, synapse=0.01)
+    error_L_p = nengo.Probe(error_L, synapse=0.03)
+
+duration = 10
 with nengo.Simulator(model) as sim:
-    sim.run(0.1)
+    sim.run(duration)
     freq_a = np.sum(sim.data[outa_p] > 0, axis=0) / len(sim.data[outa_p])
     freq_b = np.sum(sim.data[outb_p] > 0, axis=0) / len(sim.data[outb_p])
 t = sim.trange()
@@ -187,4 +199,23 @@ print("freq B", freq_b)
 
 print(sim.data[input_node_probe])
 
-plot_decoded(t, sim.data)
+#plot_decoded(t, sim.data)
+
+# Gestolen van tutorial
+sl = slice(0, duration-1)
+t = sim.trange()[sl]
+plt.figure(figsize=(14, 12))
+plt.suptitle("")
+plt.subplot(4, 1, 1)
+plt.plot(t, sim.data[pre_p_L][sl], c="b")
+plt.legend(("Pre decoding",), loc="best")
+plt.subplot(4, 1, 2)
+plt.plot(t, sim.data[target_p_L][sl], c="k", label="Actual freq")
+plt.plot(t, sim.data[post_L_p][sl], c="r", label="Post decoding (Left)")
+plt.legend(loc="best")
+plt.subplot(4, 1, 3)
+plt.plot(t, sim.data[target_p_L][sl], c="k", label="Actual freq")
+plt.plot(t, sim.data[error_L_p][sl], c="r", label="Error")
+plt.legend(loc="best")
+
+plt.show()
