@@ -34,25 +34,29 @@ def error_func(desired_L, desired_R, actual_L, actual_R):
 
 def read_data():
 
-    left_terrain = []
-    right_terrain = []
-    left_distance = []
-    right_distance = []
+    left = []
+    right = []
+
     target_L = []
     target_R = []
 
     with open('../data.csv', newline='') as csvfile:
         datafile = csv.reader(csvfile, delimiter=' ', quotechar='|')
         for row in datafile:
-            left_terrain.append(float(row[0]))
-            right_terrain.append(float(row[1]))
-            left_distance.append(float(row[2]))
-            right_distance.append(float(row[3]))
+            sample_left = []
+            sample_right = []
+            sample_left.append(float(row[0])) #terrain1 left
+            sample_left.append(float(row[2])) #distnace1 left
+            sample_right.append(float(row[1])) #terrain1 right
+            sample_right.append(float(row[3])) #distnace1 right
+
+            left.append(sample_left)
+            right.append(sample_right)
             target_L.append(float(row[4]))
             target_R.append(float(row[5]))
 
 
-    return [left_terrain, left_distance], [right_terrain, right_distance], target_L, target_R
+    return left, right, target_L, target_R
 
 with nengo.Network(label="STDP") as model:
     timing = 0.1
@@ -72,8 +76,8 @@ with nengo.Network(label="STDP") as model:
     # stim_right_t = nengo.Node(output = 1, size_out=1)
     # stim_right_o = nengo.Node(output = 1, size_out=1)
 
-    inp_collector_l = nengo.Ensemble(8, dimensions = 1)
-    inp_collector_r = nengo.Ensemble(8, dimensions = 1)
+    inp_collector_l = nengo.Ensemble(8, dimensions = 2)
+    inp_collector_r = nengo.Ensemble(8, dimensions = 2)
 
     dij_node = nengo.Node([1])
 
