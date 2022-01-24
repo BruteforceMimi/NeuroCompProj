@@ -5,14 +5,18 @@ import matplotlib.pyplot as plt
 import csv
 import simplifiedSTDP as stdp
 
+
 def neg_sum_func(x):
-    return -(x[0]+x[1])
+    return -(x[0] + x[1])
+
 
 def sum_func(x):
-    return (x[0]+x[1])
+    return (x[0] + x[1])
+
 
 def error_func(x, y):
     return (x - y)
+
 
 def plot_decoded(t, data, xlim_tuple=None):
     if xlim_tuple:
@@ -27,13 +31,14 @@ def plot_decoded(t, data, xlim_tuple=None):
     plt.legend(loc="best")
     plt.show()
 
+
 def error_func(desired_L, desired_R, actual_L, actual_R):
     left = np.abs(desired_L - actual_L)
     right = np.abs(desired_R - actual_R)
     return np.mean(left + right)
 
-def read_data():
 
+def read_data():
     left = []
     right = []
 
@@ -45,28 +50,27 @@ def read_data():
         for row in datafile:
             sample_left = []
             sample_right = []
-            sample_left.append(float(row[0])) #terrain1 left
-            sample_left.append(float(row[2])) #distnace1 left
-            sample_right.append(float(row[1])) #terrain1 right
-            sample_right.append(float(row[3])) #distnace1 right
+            sample_left.append(float(row[0]))  # terrain1 left
+            sample_left.append(float(row[2]))  # distnace1 left
+            sample_right.append(float(row[1]))  # terrain1 right
+            sample_right.append(float(row[3]))  # distnace1 right
 
             left.append(sample_left)
             right.append(sample_right)
             target_L.append(float(row[4]))
             target_R.append(float(row[5]))
 
-
     return left, right, target_L, target_R
+
 
 with nengo.Network(label="STDP") as model:
     timing = 0.1
 
     my_spikes_L, my_spikes_R, target_freq_L, target_freq_R = read_data()
-    print(my_spikes_L)
-    #my_spikes_L = [[0,0],[0,0]]
+    # my_spikes_L = [[0,0],[0,0]]
     process_L = nengo.processes.PresentInput(my_spikes_L, timing)
     input_node_L = nengo.Node(process_L)
-    #my_spikes_R = [[0], [1]]
+    # my_spikes_R = [[0], [1]]
     process_R = nengo.processes.PresentInput(my_spikes_R, timing)
     input_node_R = nengo.Node(process_R)
     # https://forum.nengo.ai/t/spike-train-input-to-a-snn-model/717/4
@@ -162,12 +166,16 @@ with nengo.Network(label="STDP") as model:
     nengo.Connection(output_b, output_a)
 
     ## WIP: calculate error through ensembles
-    # target_L = nengo.Node(nengo.processes.PresentInput(target_freq_L, timing))
-    # target_R = nengo.Node(nengo.processes.PresentInput(target_freq_R, timing))
-    # nengo.Connection(output_a, target_L, synapse=None, function = error_func)
-    # nengo.Connection(output_b, target_R, synapse=None, transform= error_func)
+    target_L = nengo.Node(nengo.processes.PresentInput(target_freq_L, timing))
+    target_R = nengo.Node(nengo.processes.PresentInput(target_freq_R, timing))
+    error_L = nengo.Ensemble(10, dimensions = 1)
+    error_R = nengo.Ensemble(10, dimensions = 1)
 
+    nengo.Connection(output_a, error_L, synapse=None, transform = -1)
+    nengo.Connection(target_L, error_L, synapse=None, transform = -1)
 
+    nengo.Connection(output_b, error_R, synapse=None, transform = -1)
+    nengo.Connection(target_R, error_R, synapse=None, transform = -1)
 
 with nengo.Simulator(model) as sim:
     sim.run(0.1)
