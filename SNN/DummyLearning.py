@@ -1,9 +1,8 @@
 import nengo
 import numpy as np
-import nengo_dl
 from nengo.processes import WhiteSignal
 import matplotlib.pyplot as plt
-
+import csv
 import simplifiedSTDP as stdp
 
 def neg_sum_func(x):
@@ -30,11 +29,34 @@ def error_func(desired_L, desired_R, actual_L, actual_R):
     right = np.abs(desired_R - actual_R)
     return np.mean(left + right)
 
+def read_data():
+
+    left_terrain = []
+    right_terrain = []
+    left_distance = []
+    right_distance = []
+    target_L = []
+    target_R = []
+
+    with open('../data.csv', newline='') as csvfile:
+        datafile = csv.reader(csvfile, delimiter=' ', quotechar='|')
+        for row in datafile:
+            left_terrain = row[0]
+            right_terrain = row[1]
+            left_distance = row[2]
+            right_distance = row[3]
+            target_L = row[4]
+            target_R = row[5]
+
+
+    return [left_terrain, left_distance], [right_terrain, right_distance], target_L, target_R
+
 with nengo.Network(label="STDP") as model:
 
-    my_spikes_L = [[0],[0]]
+    my_spikes_L, my_spikes_R, target_freq_L, target_freq_R = read_data()
+    #my_spikes_L = [[0],[0]]
     input_node_L = nengo.Node(nengo.processes.PresentInput(my_spikes_L, 0.001))
-    my_spikes_R = [[0], [1]]
+    #my_spikes_R = [[0], [1]]
     input_node_R = nengo.Node(nengo.processes.PresentInput(my_spikes_R, 0.001))
     # https://forum.nengo.ai/t/spike-train-input-to-a-snn-model/717/4
 
@@ -125,7 +147,7 @@ with nengo.Network(label="STDP") as model:
     nengo.Connection(output_b, output_a)
 
 
-sim = nengo_dl.Simulator(model)
+sim = nengo.Simulator(model)
 sim.run_steps(500)
 freq_a = np.sum(sim.data[outa_p]>0, axis =0)/len(sim.data[outa_p])
 freq_b = np.sum(sim.data[outb_p] > 0, axis=0)/len(sim.data[outb_p])
