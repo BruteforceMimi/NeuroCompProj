@@ -65,7 +65,7 @@ def transform_to_train(model, pre_neuron, post_neuron):
         Dij = 0.001
         to_remove = []
         for conn in model.all_connections:
-            if conn.post_obj is inp_collector_lgoal or conn.post_obj is inp_collector_lter or conn.post_obj is inp_collector_rgoal or               conn.post_obj is inp_collector_rter:
+            if conn.pre_obj is inp_collector_lgoal or conn.pre_obj is inp_collector_lter or conn.pre_obj is inp_collector_rgoal or conn.pre_obj is inp_collector_rter:
                 to_remove.append(conn)
         for conn2 in to_remove:
             model.connections.remove(conn2)
@@ -79,17 +79,17 @@ def transform_to_validate(model):
         #remove all trainging connections to input collectors
         to_remove = []
         for conn in model.all_connections:
-            if conn.post_obj is inp_collector_lgoal or conn.post_obj is inp_collector_lter or conn.post_obj is inp_collector_rgoal or conn.post_obj is inp_collector_rter:
+            if conn.pre_obj is inp_collector_lgoal or conn.pre_obj is inp_collector_lter or conn.pre_obj is inp_collector_rgoal or conn.pre_obj is inp_collector_rter:
                 to_remove.append(conn)
         for conn2 in to_remove:
             model.connections.remove(conn2)
 
         #add the sensor connections back to where they belong
-        nengo.Connection(input_node_L[0], inp_collector_lter)
-        nengo.Connection(input_node_L[1], inp_collector_lgoal)
-        nengo.Connection(input_node_R[0], inp_collector_rter)
-        nengo.Connection(input_node_R[1], inp_collector_rgoal)
-
+        nengo.Connection(inp_collector_lter, input_a)
+        nengo.Connection(inp_collector_rter, input_b)
+        nengo.Connection(inp_collector_lgoal, input_c)
+        nengo.Connection(inp_collector_rgoal, input_d)
+    return model
 with nengo.Network(label="STDP") as model:
     timing = 0.1
 
@@ -136,14 +136,10 @@ with nengo.Network(label="STDP") as model:
     nengo.Connection(input_node_R[0], inp_collector_rter)
     nengo.Connection(input_node_R[1], inp_collector_rgoal)
 
-    nengo.Connection(inp_collector_lter, input_a,  solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(inp_collector_rter, input_b, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(inp_collector_lgoal, input_c, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(inp_collector_rgoal, input_d, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    nengo.Connection(inp_collector_lter, input_a)
+    nengo.Connection(inp_collector_rter, input_b)
+    nengo.Connection(inp_collector_lgoal, input_c)
+    nengo.Connection(inp_collector_rgoal, input_d)
 
     nengo.Connection(input_a, hidden_a, solver=nengo.solvers.LstsqL2(weights=True),
                      learning_rule_type=stdp.STDP(learning_rate=2e-9))
@@ -198,11 +194,10 @@ error_limit  = 1
 pre_neurons = [input_a]
 post_neurons = [input_c]
 index = 0
-while index < 10:
+while error > error_limit:
     with nengo.Simulator(model) as sim:
+        sim.data.reset()
         sim.run(duration)
-        freq_a = np.sum(sim.data[outa_p] > 0, axis=0) / len(sim.data[outa_p])
-        freq_b = np.sum(sim.data[outb_p] > 0, axis=0) / len(sim.data[outb_p])
     #compute error by comparing the output to the target
     # note: we might want to think about what exactly the output represents
     # and how it relates to the target freqs
@@ -212,24 +207,28 @@ while index < 10:
     sim.data.reset()
 
     if new_error <= error:
-        model = transform_to_train(model, pre_neurons, post_neurons)
+        for pre_neuron, post_neuron in zip(pre_neurons, post_neurons):
+            model = transform_to_train(model, pre_neuron, post_neuron)
+            with nengo.Simulator(model) as sim:
+                sim.run(0.4)
     else:
         i = pre_neurons.copy()
         pre_neurons = post_neurons.copy()
         post_neurons = i
         for pre_neuron, post_neuron in zip(pre_neurons, post_neurons):
-            model = transform_to_train(model, pre_neuron, post_neuron)
+            model = transform_to_train(model, post_neuron, pre_neuron)
             with nengo.Simulator(model) as sim:
                 sim.run(0.4)
 
     error = new_error
+    model = transform_to_validate(model)
+    index +=1
 
-
-    with nengo.Simulator(model) as sim:
-        sim.run(duration)
-        freq_a = np.sum(sim.data[outa_p] > 0, axis=0) / len(sim.data[outa_p])
-        freq_b = np.sum(sim.data[outb_p] > 0, axis=0) / len(sim.data[outb_p])
-        index +=1
+with nengo.Simulator(model) as sim:
+    sim.run(duration)
+    freq_a = np.sum(sim.data[outa_p] > 0, axis=0) / len(sim.data[outa_p])
+    freq_b = np.sum(sim.data[outb_p] > 0, axis=0) / len(sim.data[outb_p])
+    index +=1
 
 
 t = sim.trange()
