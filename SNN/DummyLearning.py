@@ -26,8 +26,9 @@ def error_func(desired_L, desired_R, actual_L, actual_R, window_duration):
     L = np.reshape(L, (len(desired_L),-1))
     R = np.reshape(L, (len(desired_R), -1))
 
-    L_freq = np.count_nonzero(L,axis = 1)/window_duration
-    R_freq = np.count_nonzero(R, axis=1) / window_duration
+    #scaled the frew down with factor 0.1
+    L_freq = (np.count_nonzero(L,axis = 1)/ window_duration)/10
+    R_freq = (np.count_nonzero(R, axis=1) / window_duration)/10
 
     left = np.abs(desired_L - L_freq)
     right = np.abs(desired_R - R_freq)
@@ -198,7 +199,7 @@ post_neurons = [input_c]
 index = 0
 
 while error > error_limit:
-    with nengo.Simulator(model) as sim:
+    with nengo.Simulator(model, progress_bar=False) as sim:
         sim.data.reset()
         sim.run(0.3)
 
@@ -214,16 +215,16 @@ while error > error_limit:
     if new_error <= error:
         for pre_neuron, post_neuron in zip(pre_neurons, post_neurons):
             model = transform_to_train(model, pre_neuron, post_neuron)
-            with nengo.Simulator(model) as sim:
-                sim.run(0.4)
+            with nengo.Simulator(model, progress_bar=False) as sim:
+                sim.run(0.01)
     else:
         i = pre_neurons.copy()
         pre_neurons = post_neurons.copy()
         post_neurons = i
         for pre_neuron, post_neuron in zip(pre_neurons, post_neurons):
-            model = transform_to_train(model, post_neuron, pre_neuron)
-            with nengo.Simulator(model) as sim:
-                sim.run(0.4)
+            model = transform_to_train(model, pre_neuron, post_neuron)
+            with nengo.Simulator(model, progress_bar=False) as sim:
+                sim.run(0.01)
 
     error = new_error
     model = transform_to_validate(model)
