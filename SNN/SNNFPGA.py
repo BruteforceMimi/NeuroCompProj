@@ -35,8 +35,19 @@ def create_network_layer(n, m, learning_rule, solver):
 
     return grid
 
-def connect_layers(layer_plane1, layer_plane2):
-    return 0
+
+def connect_layers(layer_plane1, layer_plane2, learning_rule, solver):
+    #Check if shape matches, for now it only works with squares
+    n1 = len(layer_plane1)
+    print(n1)
+    m1 = len(layer_plane1)
+
+    n2 = len(layer_plane2)
+    m2 = len(layer_plane2)
+
+    for i in range(n1):
+        nengo.Connection(layer_plane1[i][0], layer_plane2[i][-1], solver=solver, learning_rule_type=learning_rule)
+
 
 
 
@@ -48,12 +59,12 @@ with nengo.Network() as model:
     test_input_layer1 = create_network_layer(5, 5, stdp_rule, solv)
     test_input_layer2 = create_network_layer(5, 5, stdp_rule, solv)
 
-
+    connect_layers(test_input_layer1, test_input_layer2, stdp_rule, solv)
 
     test_hidden_layer = create_network_layer(16, 16, stdp_rule, solv)
 
-    connect_layers(test_input_layer1, test_hidden_layer)
-    connect_layers(test_input_layer2, test_hidden_layer)
+    connect_layers(test_input_layer1, test_hidden_layer, stdp_rule, solv)
+    connect_layers(test_input_layer2, test_hidden_layer, stdp_rule, solv)
 
     test_output_layer1 = create_network_layer(5, 5, stdp_rule, solv)
     test_output_layer2 = create_network_layer(5, 5, stdp_rule, solv)
@@ -66,8 +77,6 @@ with nengo.Network() as model:
 
     nengo.Connection(input_node_left, input_layer[0])
     nengo.Connection(input_node_right, input_layer[1])
-
-
 
     hidden_layer = nengo.Ensemble(n_neurons=256, dimensions=2)
     conn = nengo.Connection(input_layer, hidden_layer, solver = solv, learning_rule_type = stdp_rule)
