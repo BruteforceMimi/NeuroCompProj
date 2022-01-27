@@ -7,6 +7,53 @@ import simplifiedSTDP as stdp
 
 from itertools import combinations
 
+def findNeighbors(grid, x, y):
+    if 0 < x < len(grid) - 1:
+        xi = (0, -1, 1)   # this isn't first or last row, so we can look above and below
+    elif x > 0:
+        xi = (0, -1)      # this is the last row, so we can only look above
+    else:
+        xi = (0, 1)       # this is the first row, so we can only look below
+    # the following line accomplishes the same thing as the above code but for columns
+    yi = (0, -1, 1) if 0 < y < len(grid[0]) - 1 else ((0, -1) if y > 0 else (0, 1))
+    for a in xi:
+        for b in yi:
+            if a == b == 0:  # this value is skipped using islice in the original code
+                continue
+            yield grid[x + a][y + b]
+
+
+def create_network_layer(n, m, learning_rule, solver):
+    grid = [[0]*n for i in range(m)]
+
+    for i in range(n):
+        for j in range(m):
+            grid[i][j] = nengo.Ensemble(n_neurons=1, dimensions=1)
+
+    for i in range(n):
+        for j in range(m):
+            neigh = list(findNeighbors(grid, i, j))
+            for elem in neigh:
+                nengo.Connection(grid[i][j], elem, solver=solver, learning_rule_type=learning_rule)
+
+    return grid
+
+
+def connect_layers(layer_plane1, layer_plane2, learning_rule, solver):
+    n1 = len(layer_plane1)
+    n2 = len(layer_plane2)
+
+
+    for i in range(n1):
+        for j in range(n2):
+            nengo.Connection(layer_plane1[i][0], layer_plane2[j][-1], solver=solver, learning_rule_type=learning_rule)
+
+def connect_layer_ensemble(ensemble, layer_plane, learning_rule, solver):
+    n1 = len(layer_plane)
+
+    for i in range(n1):
+        nengo.Connection(layer_plane[i][0], ensemble, solver=solver, learning_rule_type=learning_rule)
+
 
 def plot_decoded(t, data, xlim_tuple=None):
     if xlim_tuple:
@@ -133,104 +180,100 @@ with nengo.Network(label="STDP") as model:
     inp_collector_lgoal = nengo.Ensemble(1, dimensions=1)
     inp_collector_rgoal = nengo.Ensemble(1, dimensions=1)
 
+
+    stdp_rule = stdp.STDP()
+    solv = nengo.solvers.LstsqL2(weights=True)
+
+    input_layer1 = create_network_layer(5, 5, stdp_rule, solv)
+    input_layer2 = create_network_layer(5, 5, stdp_rule, solv)
+
+    connect_layer_ensemble(inp_collector_lgoal, input_layer1, stdp_rule, solv)
+    connect_layer_ensemble(inp_collector_lter, input_layer1, stdp_rule, solv)
+
+    connect_layer_ensemble(inp_collector_rgoal, input_layer2, stdp_rule, solv)
+    connect_layer_ensemble(inp_collector_rter, input_layer2, stdp_rule, solv)
+
+    hidden_layer = create_network_layer(16, 16, stdp_rule, solv)
+
+    connect_layers(input_layer1, hidden_layer, stdp_rule, solv)
+    connect_layers(input_layer2, hidden_layer, stdp_rule, solv)
+
+    output_layer1 = create_network_layer(5, 5, stdp_rule, solv)
+    output_layer2 = create_network_layer(5, 5, stdp_rule, solv)
+
     # input
-    input_a = nengo.Ensemble(1, dimensions=1)
-    input_b = nengo.Ensemble(1, dimensions=1)
-    input_c = nengo.Ensemble(1, dimensions=1)
-    input_d = nengo.Ensemble(1, dimensions=1)
-
-    # hidden
-    hidden_a = nengo.Ensemble(1, dimensions=1)
-    hidden_b = nengo.Ensemble(1, dimensions=1)
-    hidden_c = nengo.Ensemble(1, dimensions=1)
-
-    # output
-    output_a = nengo.Ensemble(1, dimensions=1)
-    output_b = nengo.Ensemble(1, dimensions=1)
-
-    outa_p = nengo.Probe(output_a)
-    outb_p = nengo.Probe(output_b)
-    ## connections  between the layers
-
-    nengo.Connection(input_node_L[0], inp_collector_lter)
-    nengo.Connection(input_node_L[1], inp_collector_lgoal)
-    nengo.Connection(input_node_R[0], inp_collector_rter)
-    nengo.Connection(input_node_R[1], inp_collector_rgoal)
-
-    nengo.Connection(inp_collector_lter, input_a)
-    nengo.Connection(inp_collector_rter, input_b)
-    nengo.Connection(inp_collector_lgoal, input_c)
-    nengo.Connection(inp_collector_rgoal, input_d)
-
-    nengo.Connection(input_a, hidden_a, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_a, hidden_b, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_a, hidden_c, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_b, hidden_a, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_b, hidden_b, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_b, hidden_c, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_c, hidden_a, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_c, hidden_b, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_c, hidden_c, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_d, hidden_a, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_d, hidden_b, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_d, hidden_c, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-
-    nengo.Connection(hidden_a, output_a, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(hidden_b, output_a, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(hidden_c, output_a, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(hidden_a, output_b, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(hidden_b, output_b, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(hidden_c, output_b, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-
-    nengo.Connection(input_a, input_b, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_a, input_c, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_a, input_d, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_b, input_a, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_b, input_c, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_b, input_d, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_c, input_a, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_c, input_b, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_c, input_d, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_d, input_a, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_d, input_b, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-    nengo.Connection(input_d, input_c, solver=nengo.solvers.LstsqL2(weights=True),
-                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
-
-    nengo.Connection(hidden_a, hidden_b)
-    nengo.Connection(hidden_b, hidden_a)
-    nengo.Connection(hidden_b, hidden_c)
-    nengo.Connection(hidden_c, hidden_b)
-    nengo.Connection(hidden_c, hidden_a)
-    nengo.Connection(hidden_a, hidden_c)
+    # input_a = nengo.Ensemble(1, dimensions=1)
+    # input_b = nengo.Ensemble(1, dimensions=1)
+    # input_c = nengo.Ensemble(1, dimensions=1)
+    # input_d = nengo.Ensemble(1, dimensions=1)
+    #
+    # # hidden
+    # hidden_a = nengo.Ensemble(1, dimensions=1)
+    # hidden_b = nengo.Ensemble(1, dimensions=1)
+    # hidden_c = nengo.Ensemble(1, dimensions=1)
+    #
+    # # output
+    # output_a = nengo.Ensemble(1, dimensions=1)
+    # output_b = nengo.Ensemble(1, dimensions=1)
+    #
+    # outa_p = nengo.Probe(output_a)
+    # outb_p = nengo.Probe(output_b)
+    # ## connections  between the layers
+    #
+    # nengo.Connection(input_node_L[0], inp_collector_lter)
+    # nengo.Connection(input_node_L[1], inp_collector_lgoal)
+    # nengo.Connection(input_node_R[0], inp_collector_rter)
+    # nengo.Connection(input_node_R[1], inp_collector_rgoal)
+    #
+    # nengo.Connection(inp_collector_lter, input_a)
+    # nengo.Connection(inp_collector_rter, input_b)
+    # nengo.Connection(inp_collector_lgoal, input_c)
+    # nengo.Connection(inp_collector_rgoal, input_d)
+    #
+    # nengo.Connection(input_a, hidden_a, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(input_a, hidden_b, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(input_a, hidden_c, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(input_b, hidden_a, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(input_b, hidden_b, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(input_b, hidden_c, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(input_c, hidden_a, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(input_c, hidden_b, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(input_c, hidden_c, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(input_d, hidden_a, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(input_d, hidden_b, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(input_d, hidden_c, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    #
+    # nengo.Connection(hidden_a, output_a, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(hidden_b, output_a, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(hidden_c, output_a, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(hidden_a, output_b, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(hidden_b, output_b, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    # nengo.Connection(hidden_c, output_b, solver=nengo.solvers.LstsqL2(weights=True),
+    #                  learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    #
+    # nengo.Connection(hidden_a, hidden_b)
+    # nengo.Connection(hidden_b, hidden_a)
+    # nengo.Connection(hidden_b, hidden_c)
+    # nengo.Connection(hidden_c, hidden_b)
+    # nengo.Connection(hidden_c, hidden_a)
+    # nengo.Connection(hidden_a, hidden_c)
 
 #paramters
 nr_datapoints = len(target_freq_R)
@@ -289,7 +332,7 @@ while error > error_limit:
 print("final error was", error)
 
 t = sim.trange()
-plot_decoded(t, sim.data)
+#plot_decoded(t, sim.data)
 
 # Gestolen van tutorial
 # sl = slice(0, duration-1)

@@ -69,6 +69,8 @@ with nengo.Network() as model:
     test_output_layer1 = create_network_layer(5, 5, stdp_rule, solv)
     test_output_layer2 = create_network_layer(5, 5, stdp_rule, solv)
 
+
+
     # Input stimulus
     input_node_left = nengo.Node(1)
     input_node_right = nengo.Node(0)
