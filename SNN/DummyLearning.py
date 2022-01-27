@@ -273,7 +273,6 @@ while error > error_limit:
             with nengo.Simulator(model, progress_bar=False) as sim:
                 sim.run(0.025)
     else:
-    else:
         while N > current_N/2 and N > min_N_pairs:
             all_pairs,training_pairs = remove_pair(all_pairs,training_pairs)
             N = N-1
