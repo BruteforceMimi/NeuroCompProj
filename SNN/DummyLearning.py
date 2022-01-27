@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import csv
 import simplifiedSTDP as stdp
 
+from itertools import combinations
+
 
 def plot_decoded(t, data, xlim_tuple=None):
     if xlim_tuple:
@@ -33,6 +35,20 @@ def error_func(desired_L, desired_R, actual_L, actual_R, window_duration):
     left = np.abs(desired_L - L_freq)
     right = np.abs(desired_R - R_freq)
     return np.mean((left + right)/2)
+
+def add_pair(all_pairs, training_pairs):
+    indx_pairs = [*range(len(all_pairs))]
+    pair = np.random.choice(indx_pairs, replace=False)
+    training_pairs.append(all_pairs[pair])
+    del all_pairs[pair]
+    return all_pairs, training_pairs
+
+def remove_pair(all_pairs, training_pairs):
+    indx_pairs = [*range(len(training_pairs))]
+    pair = np.random.choice(indx_pairs, replace=False)
+    all_pairs.append(training_pairs[pair])
+    del training_pairs[pair]
+    return all_pairs, training_pairs
 
 
 def read_data():
@@ -93,12 +109,11 @@ def transform_to_validate(model):
         nengo.Connection(inp_collector_rgoal, input_d)
     return model
 
-
+timing = 0.060
 with nengo.Network(label="STDP") as model:
-    timing = 0.060
 
     # train input, initially not connected
-    train_signal_generator = nengo.Node(nengo.processes.PresentInput([[0.], [1.]], 0.01))
+    train_signal_generator = nengo.Node(nengo.processes.PresentInput([[1.], [0.],[0.],[0.],[0.]], 0.005))
 
     # sensory input
     # my_spikes_L, my_spikes_R, target_freq_L, target_freq_R = read_data()
@@ -117,6 +132,7 @@ with nengo.Network(label="STDP") as model:
     inp_collector_rter = nengo.Ensemble(1, dimensions=1)
     inp_collector_lgoal = nengo.Ensemble(1, dimensions=1)
     inp_collector_rgoal = nengo.Ensemble(1, dimensions=1)
+
     # input
     input_a = nengo.Ensemble(1, dimensions=1)
     input_b = nengo.Ensemble(1, dimensions=1)
@@ -184,6 +200,31 @@ with nengo.Network(label="STDP") as model:
     nengo.Connection(hidden_c, output_b, solver=nengo.solvers.LstsqL2(weights=True),
                      learning_rule_type=stdp.STDP(learning_rate=2e-9))
 
+    nengo.Connection(input_a, input_b, solver=nengo.solvers.LstsqL2(weights=True),
+                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    nengo.Connection(input_a, input_c, solver=nengo.solvers.LstsqL2(weights=True),
+                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    nengo.Connection(input_a, input_d, solver=nengo.solvers.LstsqL2(weights=True),
+                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    nengo.Connection(input_b, input_a, solver=nengo.solvers.LstsqL2(weights=True),
+                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    nengo.Connection(input_b, input_c, solver=nengo.solvers.LstsqL2(weights=True),
+                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    nengo.Connection(input_b, input_d, solver=nengo.solvers.LstsqL2(weights=True),
+                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    nengo.Connection(input_c, input_a, solver=nengo.solvers.LstsqL2(weights=True),
+                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    nengo.Connection(input_c, input_b, solver=nengo.solvers.LstsqL2(weights=True),
+                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    nengo.Connection(input_c, input_d, solver=nengo.solvers.LstsqL2(weights=True),
+                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    nengo.Connection(input_d, input_a, solver=nengo.solvers.LstsqL2(weights=True),
+                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    nengo.Connection(input_d, input_b, solver=nengo.solvers.LstsqL2(weights=True),
+                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+    nengo.Connection(input_d, input_c, solver=nengo.solvers.LstsqL2(weights=True),
+                     learning_rule_type=stdp.STDP(learning_rate=2e-9))
+
     nengo.Connection(hidden_a, hidden_b)
     nengo.Connection(hidden_b, hidden_a)
     nengo.Connection(hidden_b, hidden_c)
@@ -191,41 +232,58 @@ with nengo.Network(label="STDP") as model:
     nengo.Connection(hidden_c, hidden_a)
     nengo.Connection(hidden_a, hidden_c)
 
-duration = 1.3
+#paramters
+nr_datapoints = len(target_freq_R)
+duration = timing * nr_datapoints
+print("duration is ",duration)
 error = 10
 error_limit = 0.5
-pre_neurons = [input_a]
-post_neurons = [input_c]
-index = 0
+training_pairs = []
+
+#pick the first pair
+all_pairs = list(combinations([input_a,input_b, input_c, input_d],2))
+indx_pairs = [*range(len(all_pairs))]
+pair = np.random.choice(indx_pairs, replace = False)
+training_pairs.append(all_pairs[pair])
+del all_pairs[pair]
+
+min_N_pairs = 1
+max_N_pairs = len(all_pairs)
+N = 1
 
 while error > error_limit:
     with nengo.Simulator(model, progress_bar=False) as sim:
         sim.data.reset()
-        sim.run(0.3)
+        sim.run(duration)
 
     # compute error by comparing the output to the target
     # note: we might want to think about what exactly the output represents
     # and how it relates to the target freqs
     # optionnaly, the output should be transformed somehow
-    new_error = error_func(target_freq_L, target_freq_R, sim.data[outa_p], sim.data[outb_p],  0.060)  #
-    print(new_error)
+    new_error = error_func(target_freq_L, target_freq_R, sim.data[outa_p], sim.data[outb_p],  timing)  #
 
     sim.data.reset()
-
+    current_N = N
     if new_error <= error:
-        for pre_neuron, post_neuron in zip(pre_neurons, post_neurons):
+        while N < current_N*2 and N < max_N_pairs:
+            all_pairs,training_pairs = add_pair(all_pairs,training_pairs)
+            N = N+1
+        for pre_neuron, post_neuron in training_pairs:
             model = transform_to_train(model, pre_neuron, post_neuron)
             with nengo.Simulator(model, progress_bar=False) as sim:
-                sim.run(0.01)
+                sim.run(0.025)
     else:
-        i = pre_neurons.copy()
-        pre_neurons = post_neurons.copy()
-        post_neurons = i
-        for pre_neuron, post_neuron in zip(pre_neurons, post_neurons):
+    else:
+        while N > current_N/2 and N > min_N_pairs:
+            all_pairs,training_pairs = remove_pair(all_pairs,training_pairs)
+            N = N-1
+        training_pairs = [p[::-1] for p in training_pairs]
+        #remove one pair, unless at minimum
+        for pre_neuron, post_neuron in training_pairs:
             model = transform_to_train(model, pre_neuron, post_neuron)
             with nengo.Simulator(model, progress_bar=False) as sim:
-                sim.run(0.01)
-
+                sim.run(0.025)
+    print(f"current N is {N} and current error is {new_error}")
     error = new_error
     model = transform_to_validate(model)
 
