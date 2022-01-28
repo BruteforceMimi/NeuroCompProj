@@ -148,7 +148,7 @@ def read_data():
     target_L = []
     target_R = []
 
-    with open('./data_36.csv',
+    with open('C:/Users/Zizi/Desktop/master/Neuromorphic computing/project/NeuroCompProj/SNN/data_36.csv',
               newline='') as csvfile:
         datafile = csv.reader(csvfile, delimiter=' ', quotechar='|')
         for row in datafile:
@@ -172,7 +172,9 @@ def transform_to_train(model, pre_neuron, post_neuron):
         Dij = 0.002
         to_remove = []
         for conn in model.all_connections:
-            if conn.pre_obj is inp_collector_lgoal or conn.pre_obj is inp_collector_lter or conn.pre_obj is inp_collector_rgoal or conn.pre_obj is inp_collector_rter:
+            if conn.post_obj is inp_collector_lgoal or conn.pre_obj is inp_collector_lter or conn.pre_obj is inp_collector_rgoal or conn.pre_obj is inp_collector_rter:
+                to_remove.append(conn)
+            elif conn.pre_obj is train_signal_generator:
                 to_remove.append(conn)
         for conn2 in to_remove:
             model.connections.remove(conn2)
@@ -188,6 +190,8 @@ def transform_to_validate(model):
         to_remove = []
         for conn in model.all_connections:
             if conn.pre_obj is inp_collector_lgoal or conn.pre_obj is inp_collector_lter or conn.pre_obj is inp_collector_rgoal or conn.pre_obj is inp_collector_rter:
+                to_remove.append(conn)
+            elif conn.pre_obj is train_signal_generator:
                 to_remove.append(conn)
         for conn2 in to_remove:
             model.connections.remove(conn2)
