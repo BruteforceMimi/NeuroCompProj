@@ -148,7 +148,7 @@ def read_data():
     target_L = []
     target_R = []
 
-    with open('C:/Users/Zizi/Desktop/master/Neuromorphic computing/project/NeuroCompProj/SNN/data_36.csv',
+    with open('./data_36.csv',
               newline='') as csvfile:
         datafile = csv.reader(csvfile, delimiter=' ', quotechar='|')
         for row in datafile:
@@ -267,12 +267,18 @@ del all_pairs[pair]
 min_N_pairs = 1
 max_N_pairs = len(all_pairs)
 N = 1
+n_iter = 10
 
 # range of the output
 max = max(max(target_freq_L), max(target_freq_R))
 min = min(min(target_freq_L), min(target_freq_R))
 print("intialise algorithm")
-while error > error_limit:
+
+errors = []
+output_a = []
+output_b = []
+
+for i in range(n_iter):
     with nengo.Simulator(model, progress_bar=True, seed=my_seed) as sim:
         sim.clear_probes()
         sim.run(duration)
@@ -305,12 +311,21 @@ while error > error_limit:
             with nengo.Simulator(model, progress_bar=False, seed=my_seed) as sim:
                 sim.run(0.030)
     print(f"current N is {N} and current error is {new_error}")
+    errors.append(new_error)
+    output_a.append(sim.data[outa_p])
+    output_b.append(sim.data[outb_p])
     error = new_error
     model = transform_to_validate(model)
 
 print("final error was", error)
 
 t = sim.trange()
+plt.plot(errors)
+plt.show()
+
+## HIER METRIC STUFF EN VERGELIJKEN MET PAPER
+
+
 # plot_decoded(t, sim.data)
 
 # Gestolen van tutorial
