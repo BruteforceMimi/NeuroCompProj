@@ -12,6 +12,7 @@ my_seed = 112
 np.random.seed(my_seed)
 
 
+
 def findNeighbors(grid, x, y):
     if 0 < x < len(grid) - 1:
         xi = (0, -1, 1)  # this isn't first or last row, so we can look above and below
@@ -89,7 +90,6 @@ def error_func_freq(desired_L, desired_R, actual_L, actual_R, window_duration):
     right = np.abs(desired_R - R_freq)
     return np.mean((left + right) / 2)
 
-
 def error_func(desired_L, desired_R, actual_L, actual_R, min, max):
     actual_L = denormalise(actual_L, min, max)
     actual_R = denormalise(actual_R, min, max)
@@ -97,8 +97,12 @@ def error_func(desired_L, desired_R, actual_L, actual_R, min, max):
     R = np.array(actual_R)
     L = np.reshape(L, (len(desired_L), -1))
     R = np.reshape(R, (len(desired_R), -1))
-    left = np.abs(desired_L - actual_L)
-    right = np.abs(desired_R - actual_R)
+
+    desired_L = np.tile(np.array(desired_L),(10,1)).T
+    desired_R = np.tile(np.array(desired_R), (10, 1)).T
+    left = np.abs( L[:,-10:]-desired_L)
+    right = np.abs( R[:,-10:]-desired_R )
+
     return np.mean((left + right) / 2)
 
 
@@ -255,7 +259,6 @@ training_pairs = []
 
 # pick the first pair
 all_pairs = list(combinations(chain(*input_layer1), 2))
-print(all_pairs)
 indx_pairs = [*range(len(all_pairs))]
 pair = np.random.choice(indx_pairs, replace=False)
 training_pairs.append(all_pairs[pair])
