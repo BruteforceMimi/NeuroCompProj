@@ -12,7 +12,7 @@ my_seed = 112
 np.random.seed(my_seed)
 
 
-
+## Reference naar stack overflow for this code
 def findNeighbors(grid, x, y):
     if 0 < x < len(grid) - 1:
         xi = (0, -1, 1)  # this isn't first or last row, so we can look above and below
@@ -148,7 +148,7 @@ def read_data():
     target_L = []
     target_R = []
 
-    with open('C:/Users/Zizi/Desktop/master/Neuromorphic computing/project/NeuroCompProj/SNN/data_36.csv',
+    with open('./data_36.csv',
               newline='') as csvfile:
         datafile = csv.reader(csvfile, delimiter=' ', quotechar='|')
         for row in datafile:
@@ -238,12 +238,12 @@ with nengo.Network(label="STDP", seed=my_seed) as model:
     nengo.Connection(inp_collector_lgoal, input_layer1[3][1],  learning_rule_type=stdp_rule, solver=solv)
     nengo.Connection(inp_collector_lter, input_layer1[3][3],  learning_rule_type=stdp_rule, solver=solv)
 
-    hidden_layer = create_network_layer(8, 8, stdp_rule, solv)
+    hidden_layer = create_network_layer(16, 16, stdp_rule, solv)
 
     connect_layers(input_layer1, hidden_layer, stdp_rule, solv)
 
-    output_layer1 = nengo.Ensemble(10,dimensions=1 )
-    output_layer2 =  nengo.Ensemble(10,dimensions=1 )
+    output_layer1 = nengo.Ensemble(10, dimensions=1)
+    output_layer2 = nengo.Ensemble(10, dimensions=1)
 
     connect_layers(hidden_layer, [[output_layer1]], stdp_rule, solv)
     connect_layers(hidden_layer, [[output_layer2]], stdp_rule, solv)
@@ -253,12 +253,11 @@ with nengo.Network(label="STDP", seed=my_seed) as model:
 
 
 
-# paramters
+# parameters
 
 nr_datapoints = len(target_freq_R)
 duration = timing * nr_datapoints
 error = 10
-error_limit = 0.5
 training_pairs = []
 
 # pick the first pair
@@ -271,7 +270,7 @@ del all_pairs[pair]
 min_N_pairs = 1
 max_N_pairs = len(all_pairs)
 N = 1
-n_iter = 10
+n_iter = 20
 
 # range of the output
 max = max(max(target_freq_L), max(target_freq_R))
@@ -279,8 +278,9 @@ min = min(min(target_freq_L), min(target_freq_R))
 print("intialise algorithm")
 
 errors = []
-output_a = []
-output_b = []
+output_a = 0
+output_b = 0
+t = 0
 
 for i in range(n_iter):
     with nengo.Simulator(model, progress_bar=True, seed=my_seed) as sim:
@@ -294,6 +294,12 @@ for i in range(n_iter):
 
     # new_error = error_func(target_freq_L, target_freq_R, sim.data[outa_p], sim.data[outb_p], timing)  #
     new_error = error_func(target_freq_L, target_freq_R, sim.data[outa_p], sim.data[outb_p], min, max)
+    if i == n_iter-1:
+        out_a_denorm = denormalise(sim.data[outa_p], min, max)
+        out_b_denorm = denormalise(sim.data[outb_p], min, max)
+        output_a = out_a_denorm
+        output_b = out_b_denorm
+        t = sim.trange()
     sim.clear_probes()
     current_N = N
     if new_error <= error:
@@ -316,124 +322,23 @@ for i in range(n_iter):
                 sim.run(0.030)
     print(f"current N is {N} and current error is {new_error}")
     errors.append(new_error)
-    output_a.append(sim.data[outa_p])
-    output_b.append(sim.data[outb_p])
     error = new_error
     model = transform_to_validate(model)
 
 print("final error was", error)
-
-t = sim.trange()
-plt.plot(errors)
+print(output_a)
+plt.plot(np.arange(0, n_iter), errors)
+plt.xlabel("Iteration")
+plt.ylabel("Normalized Error")
+plt.title("Normalized Error over iterations")
 plt.show()
-
-## HIER METRIC STUFF EN VERGELIJKEN MET PAPER
-
-
-# plot_decoded(t, sim.data)
-
-# Gestolen van tutorial
-# sl = slice(0, duration-1)
-# t = sim.trange()[sl]
-# plt.figure(figsize=(14, 12))
-# plt.suptitle("")
-# plt.subplot(4, 1, 1)
-# plt.plot(t, sim.data[pre_p_L][sl], c="b")
-# plt.legend(("Pre decoding",), loc="best")
-# plt.subplot(4, 1, 2)
-# plt.plot(t, sim.data[target_p_L][sl], c="k", label="Actual freq")
-# plt.plot(t, sim.data[post_L_p][sl], c="r", label="Post decoding (Left)")
-# plt.legend(loc="best")
-# plt.subplot(4, 1, 3)
-# plt.plot(t, sim.data[target_p_L][sl], c="k", label="Actual freq")
-# plt.plot(t, sim.data[error_L_p][sl], c="r", label="Error")
-# plt.legend(loc="best")
-#
-# plt.show()
-
-'''
-Dij = 0.001
-current N is 1 and current error is 17.80948214209443
-current N is 1 and current error is 18.839735857479127
-current N is 2 and current error is 15.113035674813792
-current N is 1 and current error is 15.622269791356675
-current N is 2 and current error is 15.123116962661362
-current N is 1 and current error is 15.721509706536313
-current N is 1 and current error is 17.352813247871737
-current N is 2 and current error is 15.8652835866782
-current N is 4 and current error is 15.548200906657096
-current N is 2 and current error is 16.275404121736234
-
-Dij = 0.002
-current N is 1 and current error is 17.80948214209443
-current N is 1 and current error is 18.86600207067564
-current N is 2 and current error is 15.131911747394872
-current N is 1 and current error is 15.530480537971526
-current N is 2 and current error is 15.227480073829973
-current N is 1 and current error is 15.886080733673882
-current N is 1 and current error is 17.389522473272667
-current N is 2 and current error is 16.036254628483277
-current N is 4 and current error is 15.515984029286036
-current N is 2 and current error is 16.232966891178467
-
-D= 0.002 again: stays exactly the same
-current N is 1 and current error is 17.80948214209443
-current N is 1 and current error is 18.86600207067564
-current N is 2 and current error is 15.131911747394868
-current N is 1 and current error is 15.530480537971526
-current N is 2 and current error is 15.227480073829973
-.....
-
-D = 0.005, lr = 2e-6
-current N is 1 and current error is 19.58910874211295
-current N is 2 and current error is 18.229477969860092
-current N is 4 and current error is 16.385131194162778
-current N is 2 and current error is 16.83609661412086
-current N is 4 and current error is 15.416535843087415
-current N is 5 and current error is 14.617118216882277
-current N is 2 and current error is 15.038392985068688
-current N is 1 and current error is 15.921124346666337
-current N is 1 and current error is 18.14110435951876
-current N is 2 and current error is 14.76772871741147
-current N is 1 and current error is 17.13062067324734
-current N is 2 and current error is 15.067705341478208
-current N is 1 and current error is 17.965793353664612
-current N is 2 and current error is 14.876315775362276
-
-Dij = 0.002 lr = 2e-6
-current N is 1 and current error is 19.58910874211295
-current N is 2 and current error is 18.18070351833143
-current N is 4 and current error is 17.17857183903441
-current N is 5 and current error is 15.206978788765827
-current N is 2 and current error is 15.293037269730798
-current N is 1 and current error is 15.885837797491503
-current N is 1 and current error is 15.911608898340274
-current N is 1 and current error is 16.652443257620295
-current N is 1 and current error is 16.881572096739074
-current N is 2 and current error is 15.397015341759852
-current N is 4 and current error is 14.90125646757962
-current N is 2 and current error is 17.878726450473494
-current N is 4 and current error is 16.8130709814194
-current N is 5 and current error is 15.565275129236314
-current N is 2 and current error is 16.31565618875729
-current N is 4 and current error is 15.172382719509061
-current N is 2 and current error is 15.385548744959817
-current N is 1 and current error is 15.99013386792874
-current N is 2 and current error is 15.563394247573228
-current N is 1 and current error is 21.947109457274742
-
-learning phase switched off
-current N is 1 and current error is 19.58910874211295
-current N is 2 and current error is 18.18070351833143
-current N is 4 and current error is 17.291965285971067
-current N is 5 and current error is 15.19275006880757
-current N is 2 and current error is 15.436337006874057
-current N is 4 and current error is 14.914206647840539
-current N is 2 and current error is 15.788606961332633
-current N is 1 and current error is 16.444803085005827
-current N is 1 and current error is 17.9512322286322
-current N is 2 and current error is 14.788763892208705
-current N is 1 and current error is 20.100665270838828
-current N is 2 and current error is 15.086344519037437
-
-'''
+plt.plot(t, np.ravel(output_a))
+plt.xlabel("Time (s)")
+plt.ylabel("Value for motor a")
+plt.title("Motor a over time")
+plt.show()
+plt.plot(t, np.ravel(output_b))
+plt.xlabel("Time (s)")
+plt.ylabel("Value for motor b")
+plt.title("Motor b over time")
+plt.show()
