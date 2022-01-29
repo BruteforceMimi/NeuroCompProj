@@ -229,21 +229,21 @@ with nengo.Network(label="STDP", seed=my_seed) as model:
     stdp_rule = stdp.STDP(learning_rate=2e-7)
     solv = nengo.solvers.LstsqL2(weights=True)
 
-    input_layer1 = create_network_layer(5, 5, stdp_rule, solv)
-    # the input layer is 5 by 5, so we want to spread the stimulus inputs evenly,
+    input_layer1 = create_network_layer(10, 10, stdp_rule, solv)
+    # the input layer is 10 by 10, so we want to spread the stimulus inputs evenly,
     # by positioning them at (1,1), (1,3), (3,1) and (3,3)
 
-    nengo.Connection(inp_collector_lgoal, input_layer1[1][1], learning_rule_type=stdp_rule, solver=solv)
-    nengo.Connection(inp_collector_lter, input_layer1[1][3],  learning_rule_type=stdp_rule, solver=solv)
-    nengo.Connection(inp_collector_lgoal, input_layer1[3][1],  learning_rule_type=stdp_rule, solver=solv)
-    nengo.Connection(inp_collector_lter, input_layer1[3][3],  learning_rule_type=stdp_rule, solver=solv)
+    nengo.Connection(inp_collector_lgoal, input_layer1[2][2], learning_rule_type=stdp_rule, solver=solv)
+    nengo.Connection(inp_collector_lter, input_layer1[2][7],  learning_rule_type=stdp_rule, solver=solv)
+    nengo.Connection(inp_collector_lgoal, input_layer1[7][2],  learning_rule_type=stdp_rule, solver=solv)
+    nengo.Connection(inp_collector_lter, input_layer1[7][7],  learning_rule_type=stdp_rule, solver=solv)
 
     hidden_layer = create_network_layer(16, 16, stdp_rule, solv)
 
     connect_layers(input_layer1, hidden_layer, stdp_rule, solv)
 
-    output_layer1 = nengo.Ensemble(10, dimensions=1)
-    output_layer2 = nengo.Ensemble(10, dimensions=1)
+    output_layer1 = nengo.Ensemble(50, dimensions=1)
+    output_layer2 = nengo.Ensemble(50, dimensions=1)
 
     connect_layers(hidden_layer, [[output_layer1]], stdp_rule, solv)
     connect_layers(hidden_layer, [[output_layer2]], stdp_rule, solv)
