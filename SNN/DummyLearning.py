@@ -174,8 +174,8 @@ def transform_to_train(model, pre_neuron, post_neuron):
         for conn in model.all_connections:
             if conn.post_obj is inp_collector_lgoal or conn.pre_obj is inp_collector_lter or conn.pre_obj is inp_collector_rgoal or conn.pre_obj is inp_collector_rter:
                 to_remove.append(conn)
-            elif conn.pre_obj is train_signal_generator:
-                to_remove.append(conn)
+            # elif conn.pre_obj is train_signal_generator:
+            #     to_remove.append(conn)
         for conn2 in to_remove:
             model.connections.remove(conn2)
 
@@ -191,8 +191,8 @@ def transform_to_validate(model):
         for conn in model.all_connections:
             if conn.pre_obj is inp_collector_lgoal or conn.pre_obj is inp_collector_lter or conn.pre_obj is inp_collector_rgoal or conn.pre_obj is inp_collector_rter:
                 to_remove.append(conn)
-            elif conn.pre_obj is train_signal_generator:
-                to_remove.append(conn)
+            # elif conn.pre_obj is train_signal_generator:
+            #     to_remove.append(conn)
         for conn2 in to_remove:
             model.connections.remove(conn2)
 
